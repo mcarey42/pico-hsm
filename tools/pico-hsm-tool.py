@@ -57,7 +57,7 @@ from argparse import RawTextHelpFormatter
 
 pin = None
 
-BOOTKEY = [225, 209, 107, 167, 100, 171, 215, 18, 212, 239, 110, 62, 221, 116, 78, 213, 99, 140, 38, 11, 119, 28, 249, 129, 81, 17, 11, 175, 172, 155, 200, 113]
+BOOTKEY = [223, 108, 242, 237, 215, 54, 85, 143, 55, 97, 93, 210, 162, 98, 159, 163, 140, 83, 178, 104, 141, 205, 182, 3, 74, 190, 227, 246, 212, 253, 67, 74]
 
 def hexy(a):
     return [hex(i) for i in a]
@@ -357,9 +357,7 @@ def cipher(picohsm, args):
         fin = sys.stdin.buffer
     enc = fin.read()
     fin.close()
-    iv = args.iv
-    if (args.iv and args.hex):
-        iv = unhexlify(iv)
+    iv = unhexlify(args.iv) if args.iv else None
     aad = args.aad
     if (args.aad and args.hex):
             aad = unhexlify(aad)
