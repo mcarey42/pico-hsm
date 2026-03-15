@@ -84,7 +84,10 @@ class PicoHSM:
         if (self.__card.product != Product.HSM):
             raise Exception('Not a PicoHSM')
         self.select_applet()
-        data = self.get_contents(p1=0x2f02)
+        try:
+            data = self.get_contents(p1=0x2f02)
+        except APDUResponse:
+            data = None
         self.device_id = CVC().decode(data).chr() if data else None
         try:
             self.login()
@@ -92,7 +95,9 @@ class PicoHSM:
             pass
 
     def select_applet(self, rescue=False):
-        return self.__card.select_applet(rescue=rescue)
+        if (rescue):
+            return self.__card.select_applet(rescue=rescue)
+        return self.__card.transmit([0x00, 0xA4, 0x04, 0x00, 0xB, 0xE8, 0x2B, 0x06, 0x01, 0x04, 0x01, 0x81, 0xC3, 0x1F, 0x02, 0x01, 0x0])
 
     def send(self, command, cla=0x00, p1=0x00, p2=0x00, ne=None, data=None, codes=[]):
         try:
@@ -104,6 +109,8 @@ class PicoHSM:
                     response, sw1, sw2 = self.__card.resend()
                     if (sw1 == 0x90):
                         return response
+            else:
+                raise
         if (len(codes) > 1):
             return bytes(response), code
         return bytes(response)
