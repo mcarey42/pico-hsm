@@ -453,6 +453,51 @@ Type `LOCK` and press Enter.
 
 Reboot and run the full functional test suite (Section 7) one final time to confirm.
 
+### Verifying lock state at any time
+
+Read and decode the OTP lock bits (no BOOTSEL mode needed — works over PCSC):
+
+```bash
+source ~/Projects/picohsm-runtime/venv/bin/activate
+python3 - <<'EOF'
+import sys
+sys.path.insert(0, '/home/mcarey/Projects/pico-hsm/tools')
+from picohsm import PicoHSM
+dev = PicoHSM('648219')
+
+crit0       = dev.otp(0x40)[0]
+bf1         = int.from_bytes(dev.otp(0x4b)[:2], 'little')
+page1_lock  = dev.otp(0xf83, raw=True)[0]
+page2_lock  = dev.otp(0xf85, raw=True)[0]
+
+print(f"SECURE_BOOT_ENABLE : {'SET' if crit0 & 0x01 else 'NOT SET'}")
+print(f"debug_disable      : {'SET' if crit0 & 0x04 else 'NOT SET'}")
+print(f"glitch_detector    : {'SET' if crit0 & 0x10 else 'NOT SET'}")
+print(f"KEY_VALID          : 0b{(bf1 & 0x000F):04b}  (bit 0 = key 0)")
+print(f"KEY_INVALID        : 0b{((bf1>>8) & 0x000F):04b}  (1=invalidated)")
+print(f"OTP page 1 lock    : {'SET' if page1_lock & 0x10 else 'NOT SET'}")
+print(f"OTP page 2 lock    : {'SET' if page2_lock & 0x10 else 'NOT SET'}")
+
+locked = all([crit0 & 0x01, crit0 & 0x04, crit0 & 0x10,
+              (bf1 & 0xF) == 0x1, ((bf1>>8) & 0xF) == 0xE,
+              page1_lock & 0x10, page2_lock & 0x10])
+print(f"\nStatus: {'FULLY LOCKED' if locked else 'NOT fully locked'}")
+EOF
+```
+
+Expected output when fully locked:
+```
+SECURE_BOOT_ENABLE : SET
+debug_disable      : SET
+glitch_detector    : SET
+KEY_VALID          : 0b0001  (bit 0 = key 0)
+KEY_INVALID        : 0b1110  (1=invalidated)
+OTP page 1 lock    : SET
+OTP page 2 lock    : SET
+
+Status: FULLY LOCKED
+```
+
 ---
 
 ## 10. Recovery and Re-keying
